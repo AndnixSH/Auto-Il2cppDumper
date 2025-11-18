@@ -34,12 +34,12 @@ jobs:
         run: |
           TAG="Auto-Il2cppDumper"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-          
+
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             echo "Tag exists"
           else
             git tag $TAG
-            git push origin $TAG
+            git push origin $TAG || echo "Warning: tag push failed, tag probably already exists remotely"
           fi
 
       # ---- Создаем релиз если его нет ----
@@ -52,7 +52,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # ---- Переименовываем и упаковываем .so файлы в ZIP с папками arm64-v8a и armeabi-v7a ----
-      - name: ZIP archive with .so files in arm64-v8a/ and armeabi-v7a/ folders
+      - name: Prepare ZIP archive with .so files in arm64-v8a/ and armeabi-v7a/ folders
         run: |
           mkdir -p output/arm64-v8a output/armeabi-v7a
 
