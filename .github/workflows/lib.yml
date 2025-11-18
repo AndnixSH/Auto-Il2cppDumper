@@ -5,8 +5,7 @@ permissions:
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
@@ -26,41 +25,40 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build native lib
+      - name: Build native library
         run: ./gradlew assembleDebug
 
-      # ---------------------------
-      # 1. Создаем тег
-      # ---------------------------
+      # ---- Создаем тег ----
       - name: Create tag
         id: create_tag
         run: |
           TAG=v${{ github.run_number }}
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-          git tag $TAG
-          git push origin $TAG
 
-      # ---------------------------
-      # 2. Создаём релиз
-      # ---------------------------
-      - name: Create Release
-        id: release
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+          else
+            git tag $TAG
+            git push origin $TAG
+          fi
+
+      # ---- Удаляем старые assets ----
+      - name: Delete old assets
+        run: |
+          ASSETS=$(gh release view ${{ steps.create_tag.outputs.tag }} --json assets -q '.assets[].name' || true)
+          for asset in $ASSETS; do
+            echo "Deleting asset: $asset"
+            gh release delete-asset ${{ steps.create_tag.outputs.tag }} "$asset" -y || true
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ---- Создаём или обновляем релиз ----
+      - name: Create or Update Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.create_tag.outputs.tag }}
           name: "Auto Build ${{ steps.create_tag.outputs.tag }}"
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # ---------------------------
-      # 3. Загружаем .so файл
-      # ---------------------------
-      - name: Upload .so files to Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.create_tag.outputs.tag }}
           overwrite_files: true
           files: app/build/intermediates/merged_native_libs/debug/out/lib/**/lib*.so
         env:
