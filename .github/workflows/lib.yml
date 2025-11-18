@@ -51,19 +51,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # ---- Удаляем все старые assets ----
-      - name: Remove previous assets
-        run: |
-          ASSETS=$(gh release view Auto-Il2cppDumper --json assets -q '.assets[].name')
-          for asset in $ASSETS; do
-            echo "Deleting asset: $asset"
-            gh release delete-asset Auto-Il2cppDumper "$asset" -y || true
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # ---- Переименовываем и упаковываем .so файлы в ZIP с папками arm64 и arm32 ----
-      - name: Prepare ZIP archive with .so files in arm64-v8a/ and armeabi-v7a/ folders
+      # ---- Переименовываем и упаковываем .so файлы в ZIP с папками arm64-v8a и armeabi-v7a ----
+      - name: ZIP archive with .so files in arm64-v8a/ and armeabi-v7a/ folders
         run: |
           mkdir -p output/arm64-v8a output/armeabi-v7a
 
@@ -75,7 +64,7 @@ jobs:
 
           # Создаем ZIP с нужной структурой
           cd output
-          zip -r il2cppdumper-so.zip arm64 arm32
+          zip -r il2cppdumper-so.zip arm64-v8a armeabi-v7a
           cd ..
 
       # ---- Загружаем ZIP файл на релиз ----
