@@ -1,9 +1,10 @@
 name: Lib.so Build
+
 permissions:
   contents: write
 
 on:
-  pull_request:
+  push:
     branches:
       - master
   workflow_dispatch:
@@ -28,8 +29,20 @@ jobs:
       - name: Build native lib
         run: ./gradlew assembleDebug
 
-      - name: Upload native .so
-        uses: actions/upload-artifact@v5
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
         with:
-          name: Lib.so-lib-${{ github.run_id }}
-          path: app/build/intermediates/merged_native_libs/debug/out/lib/**/lib*.so
+          tag_name: v${{ github.run_number }}
+          name: "Auto Lib.so Build ${{ github.run_number }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload .so files to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/intermediates/merged_native_libs/debug/out/lib/**/lib*.so
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
