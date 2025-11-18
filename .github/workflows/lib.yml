@@ -29,20 +29,39 @@ jobs:
       - name: Build native lib
         run: ./gradlew assembleDebug
 
+      # ---------------------------
+      # 1. Создаем тег
+      # ---------------------------
+      - name: Create tag
+        id: create_tag
+        run: |
+          TAG=v${{ github.run_number }}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          git tag $TAG
+          git push origin $TAG
+
+      # ---------------------------
+      # 2. Создаём релиз
+      # ---------------------------
       - name: Create Release
-        id: create_release
+        id: release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.run_number }}
-          name: "Auto Lib.so Build ${{ github.run_number }}"
+          tag_name: ${{ steps.create_tag.outputs.tag }}
+          name: "Auto Build ${{ steps.create_tag.outputs.tag }}"
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload .so files to release
+      # ---------------------------
+      # 3. Загружаем .so файл
+      # ---------------------------
+      - name: Upload .so files to Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.create_tag.outputs.tag }}
+          overwrite_files: true
           files: app/build/intermediates/merged_native_libs/debug/out/lib/**/lib*.so
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
