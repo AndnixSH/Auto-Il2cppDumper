@@ -4,8 +4,9 @@ permissions:
   contents: write
 
 on:
-  push:
-    branches: [ master ]
+  pull_request:
+    branches:
+      - master
   workflow_dispatch:
 
 jobs:
@@ -25,51 +26,11 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build native libraries
+      - name: Build APK
         run: ./gradlew assembleDebug
 
-      # ---- Создаем тег Auto-Il2cppDumper ----
-      - name: Create static tag
-        id: tag
-        run: |
-          TAG="Auto-Il2cppDumper"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag exists"
-          else
-            git tag $TAG
-            git push origin $TAG || echo "Warning: tag push failed, tag probably already exists remotely"
-          fi
-
-      # ---- Создаем релиз если его нет ----
-      - name: Ensure Release Exists
-        uses: softprops/action-gh-release@v2
+      - name: Upload APK
+        uses: actions/upload-artifact@v5
         with:
-          tag_name: Auto-Il2cppDumper
-          name: "Auto Il2cpp Dumper Build"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # ---- Переименовываем и упаковываем .so файлы в ZIP с папками arm64-v8a и armeabi-v7a ----
-      - name: Prepare ZIP archive with .so files in arm64-v8a/ and armeabi-v7a/ folders
-        run: |
-          mkdir -p output/arm64-v8a output/armeabi-v7a
-
-          # Копируем 64-битный файл и переименовываем
-          cp app/build/intermediates/merged_native_libs/debug/out/lib/arm64-v8a/lib*.so output/arm64-v8a/libil2cppdumper.so
-
-          # Копируем 32-битный файл и переименовываем
-          cp app/build/intermediates/merged_native_libs/debug/out/lib/armeabi-v7a/lib*.so output/armeabi-v7a/libil2cppdumper.so
-
-          # Создаем ZIP с нужной структурой
-          cd output
-          zip -r il2cppdumper-so.zip arm64-v8a armeabi-v7a
-          cd ..
-
-      # ---- Загружаем ZIP файл на релиз ----
-      - name: Upload ZIP archive
-        run: |
-          gh release upload Auto-Il2cppDumper output/il2cppdumper-so.zip --clobber
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: ESPModMenu-apk-debug-${{ github.run_id }}
+          path: app/build/outputs/apk/debug/app-debug.apk
