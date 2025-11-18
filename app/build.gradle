@@ -3,14 +3,14 @@ plugins {
 }
 
 android {
-    compileSdkVersion 33
+    compileSdkVersion 30
     namespace "com.il2cpp.dumper"
-    buildToolsVersion "33.0.2"
+    buildToolsVersion "30.0.3"
 
     defaultConfig {
         applicationId "com.il2cpp.dumper"
-        minSdkVersion 16
-        targetSdkVersion 33
+        minSdkVersion 21
+        targetSdkVersion 30
         versionCode 1
         versionName "3.2"
 
